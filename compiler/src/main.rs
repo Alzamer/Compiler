@@ -11,10 +11,12 @@ fn main() {
         println!("<FILENAME>");
         ()
     }
-    else{
-        let file_contents = fs::read_to_string(&args[1]);
-    }
+    
+    let mut file_contents = fs::read_to_string(&args[1])
+        .expect("LogRocket: Should have been able to read the file");
 
-    //preprocessor::delete_multi_line_comments(&mut ex);
-    //preprocessor::delete_single_line_comments(&mut ex);
+    preprocessor::delete_multi_line_comments(&mut file_contents);
+    preprocessor::delete_single_line_comments(&mut file_contents);
+
+    println!("{file_contents}");
 }
