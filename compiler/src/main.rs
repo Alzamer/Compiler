@@ -13,7 +13,7 @@ fn main() {
     }
     
     let mut file_content = fs::read_to_string(&args[1])
-        .expect("LogRocket: Should have been able to read the file");
+        .expect("Couldn't read the content of the file!");
 
     preprocessor::delete_multi_line_comments(&mut file_content);
     preprocessor::delete_single_line_comments(&mut file_content);
