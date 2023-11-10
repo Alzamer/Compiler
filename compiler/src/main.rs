@@ -1,4 +1,5 @@
 mod preprocessor;
+mod lexer;
 
 use std::env;
 use std::fs;
@@ -19,5 +20,5 @@ fn main() {
     preprocessor::delete_single_line_comments(&mut file_content);
     preprocessor::handle_macros(&mut file_content);
 
-    println!("{:?}", file_content);
+    println!("{:?}", lexer::scan(file_content));
 }
