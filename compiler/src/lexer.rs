@@ -10,7 +10,7 @@ pub fn scan(file_content: String){
         '7', '8', '9'
     ];
     let punctuator = vec!['[', ']', '(', ')', '{', '}',
-        '=', ';'
+        '=', '<', '>'
     ];
     let keyword = vec!["char", "double", "int", "void",
         "for", "if", "else", "struct", "return"
@@ -18,58 +18,113 @@ pub fn scan(file_content: String){
     let quotation_mark = vec!['\"'];
     let delimiter = vec![';'];
 
-    struct Token {
-        name: String,
-        value: String
-    }
-
-    let mut chars = file_content.chars();
-
+    let chars = file_content.chars();
+    #[derive(Copy)]
+    #[derive(Clone)]
     enum State {
         Id,
         Number,
-        OneLetterPunctuator,
         Punctuator,
         StringLiteral,
-        Init
+        Idle
     }
 
-    let mut current_state = State::Init;
+    let mut current_state = State::Idle;
+    let mut buffer = Vec::new();
 
-    while let next_char = chars.next() {
-        let mut current_type = "";
+    for next_char in chars {
+        let current_type;
 
-        if letter.contains(&next_char.unwrap()) {
+        if letter.contains(&next_char) {
             current_type = "letter";
-        } else if digit.contains(&next_char.unwrap()) {
+        } else if digit.contains(&next_char) {
             current_type = "digit";
-        } else if punctuator.contains(&next_char.unwrap()) {
+        } else if punctuator.contains(&next_char) {
             current_type = "punctuator";
-        } else if quotation_mark.contains(&next_char.unwrap()){
+        } else if quotation_mark.contains(&next_char){
             current_type = "quotation_mark";
-        } else if delimiter.contains(&next_char.unwrap()){
+        } else if delimiter.contains(&next_char){
             current_type = "delimiter";
         } else {
             current_type = "space";
         }
 
         match (current_state, current_type) {
-            (State::Init, "letter") => {},
-            (State::Init, "digit") => {},
-            (State::Init, "quotation_mark") => {},
-            (State::Init, "punctuator") => {},
-            (State::Init, "space") => {},
-            (State::Id, "space" | "delimiter") => {},
-            (State::Id, "letter" | "digit") => {},
-            (State::Number, "digit") => {},
-            (State::Number, "space" | "delimiter") => {},
+            (State::Idle, "letter") => {
+                current_state = State::Id;
+                buffer.push(next_char);
+            },
+            (State::Idle, "digit") => {
+                current_state = State::Number;
+            },
+            (State::Idle, "quotation_mark") => {
+                current_state = State::StringLiteral;
+            },
+            (State::Idle, "punctuator") => {
+                current_state = State::Punctuator;
+            },
+            (State::Id, "space" | "delimiter") => {
+                current_state = State::Idle;
+                if keyword.contains(&buffer.clone().into_iter().collect::<String>().as_str()){
+                    println!("TOKEN KEYWORD {:?}", &buffer.clone().into_iter().collect::<String>().as_str());
+                }
+                else{
+                    println!("TOKEN ID");
+                }
+                buffer.clear();
+            },
+            (State::Id, "punctuator") => {
+                if keyword.contains(&buffer.clone().into_iter().collect::<String>().as_str()){
+                    println!("TOKEN KEYWORD {:?}", &buffer.clone().into_iter().collect::<String>().as_str());
+                }
+                else{
+                    println!("TOKEN ID");
+                }
+                buffer.clear();
+                current_state = State::Idle;
+                println!("{:?}", "TOKEN PUNCTUATOR");
+            },
+            (State::Id, "letter" | "digit") => {
+                current_state = State::Id;
+            buffer.push(next_char);
+            },
+            (State::Number, "digit") => {
+                current_state = State::Number;
+            },
+            (State::Number, "space" | "delimiter") => {
+                current_state = State::Idle;
+                println!("{:?}", "TOKEN NUMBER");
+            },
+            (State::Number, "punctuator") => {
+                println!("{:?}", "TOKEN NUMBER");
+                current_state = State::Punctuator;
+                println!("{:?}", "TOKEN PUNCTUATOR");                
+            },
             (State::StringLiteral, "letter" | "digit" |
-                "punctuator" | "space" | "delimiter") => {},
-            (State::StringLiteral, "quotation_mark") => {},
-            (State::OneLetterPunctuator, "punctuator") => {},
-            (State::OneLetterPunctuator, "space" | "number" |
-                "letter") => {},
-            (State::Punctuator, "space" | "number" | "letter") => {},
+                "punctuator" | "space" | "delimiter") => {
+                current_state = State::StringLiteral;
+            },
+            (State::StringLiteral, "quotation_mark") => {
+                current_state = State::Idle;
+                println!("{:?}", "TOKEN QUOTATION_MARK");
+            },
+            (State::Punctuator, "space") => {
+                current_state = State::Idle;
+                println!("{:?}", "TOKEN Punctuator");
+            },
+            (State::Punctuator, "letter") => {
+                current_state = State::Id;
+                println!("{:?}", "TOKEN Punctuator");
+            },
+            (State::Punctuator, "digit") => {
+                current_state = State::Number;
+                println!("{:?}", "TOKEN Punctuator");
+            },
+            (State::Punctuator, "punctuator") => {
+                current_state = State::Punctuator;
+                println!("{:?}", "TOKEN Punctuator");
+            },
+            _ => current_state = State::Idle,
         }
     }
 
