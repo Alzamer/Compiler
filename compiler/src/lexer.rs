@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Copy)]
 #[derive(Clone)]
 enum State {
@@ -9,6 +11,7 @@ enum State {
     Idle
 }
 
+#[derive(Debug)]
 enum TokenType {
     Keyword,
     Identifier,
@@ -16,6 +19,7 @@ enum TokenType {
     Punctuator,
 }
 
+#[derive(Debug)]
 struct Token {
     token_type: TokenType,
     value: String
@@ -30,7 +34,7 @@ struct FSM<'a> {
     punctuator: Vec<char>,
     keyword: Vec<&'a str>,
     delimiter: Vec<char>,
-    symbol_table: Vec<String>
+    symbol_table: HashMap<String, i32>
 }
 
 impl FSM<'_> {
@@ -48,7 +52,6 @@ impl FSM<'_> {
             } else if self.delimiter.contains(&next_char){
                 current_type = "delimiter";
             } else {
-                println!("current char {:?}", next_char);
                 current_type = "space";
             }
 
@@ -74,45 +77,54 @@ impl FSM<'_> {
                 },
                 (State::Id, "punctuator") => {
                     self.current_state = State::Punctuator;
-                    let temp: String = self.buffer.clone().into_iter().collect();
+                    let mut temp: String = self.buffer.clone().into_iter().collect();
                     let mut temp_type;
 
-                    if self.keyword.contains(&temp.as_str()) {
+                    let cleaned_temp = self.identifier_cleanup(&mut temp);
+
+                    if self.keyword.contains(&cleaned_temp.as_str()) {
                         temp_type = TokenType::Keyword;
                         self.tokens.push(Token {
                             token_type: temp_type,
-                            value: temp,
+                            value: cleaned_temp,
                         });
-                        println!("PUSHUJE TOPKEN KEYWORD");
                     } else {
                         temp_type = TokenType::Identifier;
+
+                        if !self.symbol_table.contains_key(&cleaned_temp.clone()){
+                            self.symbol_table.insert(cleaned_temp.clone(), 0);
+                        }
+
                         self.tokens.push(Token {
                             token_type: temp_type,
-                            value: temp, // change to symbol table
+                            value: cleaned_temp,
                         });
-                        println!("PUSHUJE TOPKEN IDENTIFIER");
                     }
-                    self.buffer.clear();                 
+                    self.buffer.clear();
+                    self.buffer.push(next_char);                
                 },
                 (State::Id, "space" | "delimiter") => {
                     self.current_state = State::Idle;
-                    let temp: String = self.buffer.clone().into_iter().collect();
+                    let mut temp: String = self.buffer.clone().into_iter().collect();
                     let mut temp_type;
 
-                    if self.keyword.contains(&temp.as_str()) {
+                    let cleaned_temp = self.identifier_cleanup(&mut temp);
+
+                    if self.keyword.contains(&cleaned_temp.as_str()) {
                         temp_type = TokenType::Keyword;
                         self.tokens.push(Token {
                             token_type: temp_type,
-                            value: temp,
+                            value: cleaned_temp,
                         });
-                        println!("PUSHUJE TOPKEN KEYWORD");
                     } else {
                         temp_type = TokenType::Identifier;
+                        if !self.symbol_table.contains_key(&cleaned_temp.clone()){
+                            self.symbol_table.insert(cleaned_temp.clone(), 0);
+                        }
                         self.tokens.push(Token {
                             token_type: temp_type,
-                            value: temp, // change to symbol table
+                            value: cleaned_temp,
                         });
-                        println!("PUSHUJE TOPKEN IDENTIFIER");
                     }
                     self.buffer.clear();
                 },
@@ -121,55 +133,88 @@ impl FSM<'_> {
                 },
                 (State::Number, "space" | "delimiter") => {
                     self.current_state = State::Idle;
-                    let temp: String = self.buffer.clone().into_iter().collect();
+                    let mut temp: String = self.buffer.clone().into_iter().collect();
+                    let cleaned_temp = self.identifier_cleanup(&mut temp);
                     self.tokens.push(Token {
                         token_type: TokenType::Number,
-                        value: temp,
+                        value: cleaned_temp,
                     });
                     self.buffer.clear();
-                    println!("PUSHUJE TOPKEN NUMBER");
                 },
                 (State::Number, "punctuator") => {
                     self.current_state = State::Punctuator;
-                    let temp: String = self.buffer.clone().into_iter().collect();
+                    let mut temp: String = self.buffer.clone().into_iter().collect();
+                    let cleaned_temp = self.identifier_cleanup(&mut temp);                    
                     self.tokens.push(Token {
                         token_type: TokenType::Number,
-                        value: temp,
+                        value: cleaned_temp,
                     });
                     self.buffer.clear();
                     self.buffer.push(next_char);
-                    println!("PUSHUJE TOPKEN NUMBER");
                 },
                 (State::Punctuator, "punctuator") => {
                     self.current_state = State::Punctuator;
-                    let temp: String = self.buffer.clone().into_iter().collect();
+                    let mut temp: String = self.buffer.clone().into_iter().collect();
+                    let cleaned_temp = self.identifier_cleanup(&mut temp);
                     self.tokens.push(Token {
                         token_type: TokenType::Punctuator,
-                        value: temp,
+                        value: cleaned_temp,
                     });
                     self.buffer.clear();
                     self.buffer.push(next_char);
-                    println!("PUSHUJE TOPKEN Punctuator");
+                },
+                (State::Punctuator, "letter") => {
+                    self.current_state = State::Id;
+                    let mut temp: String = self.buffer.clone().into_iter().collect();
+                    let cleaned_temp = self.identifier_cleanup(&mut temp);
+                    self.tokens.push(Token {
+                        token_type: TokenType::Punctuator,
+                        value: cleaned_temp,
+                    });
+                    self.buffer.clear();
+                    self.buffer.push(next_char);
+                },
+                (State::Punctuator, "digit") => {
+                    self.current_state = State::Number;
+                    let mut temp: String = self.buffer.clone().into_iter().collect();
+                    let cleaned_temp = self.identifier_cleanup(&mut temp);                    
+                    self.tokens.push(Token {
+                        token_type: TokenType::Punctuator,
+                        value: cleaned_temp,
+                    });
+                    self.buffer.clear();
+                    self.buffer.push(next_char);
                 },
                 (State::Punctuator, "space" | "delimiter" | "punctuator"
                     | "digit" | "letter" | "quotation_mark") => {
                     self.current_state = State::Idle;
-                    let temp: String = self.buffer.clone().into_iter().collect();
+                    let mut temp: String = self.buffer.clone().into_iter().collect();
+                    let cleaned_temp = self.identifier_cleanup(&mut temp);                    
                     self.tokens.push(Token {
                         token_type: TokenType::Punctuator,
-                        value: temp,
+                        value: cleaned_temp,
                     });
                     self.buffer.clear();
                     self.buffer.push(next_char);
-                    println!("PUSHUJE TOPKEN PUNCTUATOR");
                 },
                 _ => self.current_state = State::Idle,
             }
         }
     }
 
-    fn output(&self) {
+    fn identifier_cleanup(&self, identifier: &mut String) -> String {
+        let mut result : String;
+        result = identifier.replace("\n", "");
+        result = result.replace(";", "");
+        result = result.replace(" ", "");
+        result
+    }
 
+    fn output(&self) {
+        for element in self.tokens.iter() {
+            println!("{:?}", element);
+        }
+        println!("SYMBOL_TABLE {:?}", self.symbol_table);
     }
 }
 
@@ -191,7 +236,7 @@ pub fn scan(file_content: String){
         keyword: vec!["char", "double", "int", "void","for",
         "if", "else", "struct", "return"],
         delimiter: vec![ ';', '\n'],
-        symbol_table: vec![],
+        symbol_table: HashMap::new(),
     };
 
     machine.execute(file_content);
