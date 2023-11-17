@@ -11,7 +11,7 @@ pub fn delete_single_line_comments(source: &mut String) -> () {
 }
 
 pub fn delete_multi_line_comments(source: &mut String) -> () {
-	let re = Regex::new(r"\/\*(.|\n|\r\n)*?\*\/").unwrap();	
+	let re = Regex::new(r"\/\*(.|\n)*?\*\/").unwrap();	
 	let matched: Vec<_> = re.find_iter(source).map(|m| (m.start(), m.end())).collect();
 	
 	for i in matched.iter().rev() {
@@ -19,10 +19,10 @@ pub fn delete_multi_line_comments(source: &mut String) -> () {
 	}
 }
 
-pub fn handle_macros(file_content: &mut String) -> String {
+pub fn handle_macros(file_content: &mut String) -> () {
 	let re_define = Regex::new(r"#define [a-zA-Z]{1}[a-zA-Z0-9]* [a-zA-Z0-9]+$").unwrap();
 	let re_undef = Regex::new(r"#undef [a-zA-Z]{1}[a-zA-Z0-9]*$").unwrap();
-	let lines : Vec<_> = file_content.split("\r\n").map(|m| m.trim()).collect();
+	let lines : Vec<_> = file_content.split("\n").map(|m| m.trim()).collect();
 	let mut macros = HashMap::new();
 	let mut result : Vec<_> = Vec::new();
 
@@ -48,6 +48,6 @@ pub fn handle_macros(file_content: &mut String) -> String {
 		result.push(altered_line);
 	}
 
-	*file_content = result.join("");
-	file_content.to_string()
+	result.push("\n".to_string());
+	*file_content = result.join("").to_string();
 }

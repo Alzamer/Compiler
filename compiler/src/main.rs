@@ -17,9 +17,11 @@ fn main() {
         .expect("Couldn't read the content of the file!");
     let mut formatted_content = file_content.replace("\r\n", "\n");
 
-    //preprocessor::delete_multi_line_comments(&mut formatted_content);
-    //preprocessor::delete_single_line_comments(&mut formatted_content);
-    //formatted_content = preprocessor::handle_macros(&mut formatted_content);
+    preprocessor::delete_multi_line_comments(&mut formatted_content);
+    preprocessor::delete_single_line_comments(&mut formatted_content);
+    preprocessor::handle_macros(&mut formatted_content);
+
+    println!("{:?}", formatted_content);
 
     println!("{:?}", lexer::scan(formatted_content));
 }
