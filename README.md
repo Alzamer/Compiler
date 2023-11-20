@@ -7,9 +7,9 @@ to code everything on my own.
 When I learnt a little bit more about compilers I realised my initial idea is:
 - time-consuming
 - complex
-- hard (optimization on every phase etc.)
+- hard (optimizations on every phase etc.)
 
-So I decided to make a compiler of a subset of C, which consists of:
+So I decided to make a compiler (toy-compiler more accurately) of a subset of C, which consists of:
 - **char**,** int**, **void**,** for**,** if**, **else**, **struct**, **return**
 - **#define** and **#undef**
 - **functions** and **structs**
